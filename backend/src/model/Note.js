@@ -7,8 +7,9 @@ class Note {
     this.body = body;
     this.pinned = option.pinned;
     this.backgroundColor = option.backgroundColor;
-    this.createdAt = Math.floor(Date.now() / 1000); // unix epoch time
-    this.updatedAt = Math.floor(Date.now() / 1000);
+    const currentTime = Math.floor(Date.now() / 1000);
+    this.createdAt = currentTime;
+    this.updatedAt = currentTime;
   }
 }
 

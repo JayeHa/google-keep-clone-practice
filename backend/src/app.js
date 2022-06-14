@@ -1,7 +1,11 @@
+const { Note } = require("./model");
+
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const methodOverride = require("method-override"); // get, post외의 put, delete 등도 받을 수 있도록 해주는 미들웨어
+
+const api = require("./api");
 
 const app = express();
 
@@ -12,6 +16,8 @@ app.use(methodOverride());
 app.use(express.json());
 
 app.use(morgan("dev"));
+
+api.use("/api", api);
 
 app.use((req, res, next) => {
   const error = new Error("존재하지 않는 API 경로입니다.");
