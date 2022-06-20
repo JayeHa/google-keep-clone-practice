@@ -13,5 +13,5 @@ class Note {
   }
 }
 
-module.export = Note;
+module.exports = Note;
 

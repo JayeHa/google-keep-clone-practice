@@ -17,7 +17,7 @@ app.use(express.json());
 
 app.use(morgan("dev"));
 
-api.use("/api", api);
+app.use("/api", api);
 
 app.use((req, res, next) => {
   const error = new Error("존재하지 않는 API 경로입니다.");

@@ -15,7 +15,7 @@ router.get("/:id", (req, res) => {
   const note = store.notes.get(id);
 
   if (note === undefined) {
-    res.status(400).json({
+    res.status(404).json({
       msg: `노트(ID: ${id})를 찾을 수 없습니다`,
     });
     return;
@@ -61,7 +61,7 @@ router.put("/:id", (req, res) => {
     backgroundColor !== undefined
       ? backgroundColor
       : targetNote.backgroundColor;
-  targetNode.updateAt = Math.floor(Date.now() / 1000);
+  targetNote.updatedAt = Math.floor(Date.now() / 1000);
 
   res.json(targetNote);
 });
