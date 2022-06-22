@@ -76,3 +76,134 @@ class AddNoteBar {
   }
 }
 
+class EmptyNotePlaceholder {
+  constructor() {
+    this.elements = {
+      container: document.getElementById("emptyNotes"),
+    };
+  }
+
+  show() {
+    this.elements.container.className = "";
+  }
+
+  hide() {
+    this.elements.container.className = "hide";
+  }
+}
+
+class Modal {
+  constructor() {
+    this.elements = {
+      modalLayout: document.getElementById("modalLayout"),
+      modalWrapper: document.getElementById("modalWrapper"),
+      modalContainer: document.querySelector(
+        "#modalWrapper > div.modal-container"
+      ),
+      modalTitleInput: document.querySelector(
+        "#modalWrapper > div > div.note-content > input.note-title-input"
+      ),
+      modalBodyInput: document.querySelector(
+        "#modalWrapper > div > div.note-content > input.note-body-input"
+      ),
+      modalFooterPinButton: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > div > button.pin"
+      ),
+      modalFooterPinIcon: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > div > button.pin > span"
+      ),
+      modalFooterColorSelectButton: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > div > div.color-select"
+      ),
+      modalFooterColorSelectIcon: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > div > div.color-select > span"
+      ),
+      modalFooterDeleteButton: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > div > button.delete"
+      ),
+      modalFooterDeleteIcon: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > div > button.delete > span"
+      ),
+      modalFooterCloseButton: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > button.close"
+      ),
+    };
+
+    const that = this;
+    this.elements.modalLayout.addEventListener("click", function () {
+      that.close();
+    });
+
+    this.elements.modalTitleInput.addEventListener("input", function (event) {
+      that.setTitle(event.target.value);
+    });
+
+    this.elements.modalBodyInput.addEventListener("input", function (event) {
+      that.setBody(event.target.value);
+    });
+
+    this.elements.modalFooterPinButton.addEventListener("click", function () {
+      that.setPin(!that.pinned);
+    });
+  }
+
+  open() {
+    this.elements.modalWrapper.className = "";
+    this.elements.modalLayout.className = "";
+    this.elements.modalTitleInput.focus();
+
+    if (this.id === null || this.id === undefined) {
+      this.elements.modalFooterDeleteButton.style.display = "none";
+    } else {
+      this.elements.modalFooterDeleteButton.style.display = "block";
+    }
+  }
+
+  close() {
+    this.elements.modalWrapper.className = "hide";
+    this.elements.modalLayout.className = "hide";
+
+    this.setNoteId();
+    this.setTitle();
+    this.setBody();
+    this.setPin();
+    this.setBackgroundColor();
+
+    this.closeHandler();
+  }
+
+  onClose(fn) {
+    this.closeHandler = fn;
+  }
+
+  setNoteId(id) {
+    this.id = id !== undefined ? id : null;
+  }
+
+  setTitle(title) {
+    this.title = title !== undefined ? title : "";
+    this.elements.modalTitleInput.value = this.title;
+  }
+
+  setBody(body) {
+    this.body = body !== undefined ? body : "";
+    this.elements.modalBodyInput.value = this.body;
+  }
+
+  setPin(pinned) {
+    this.pinned = pinned !== undefined ? pinned : false;
+    if (this.pinned) {
+      this.elements.modalFooterPinIcon.className = "material-icons md-18 gray";
+    } else {
+      this.elements.modalFooterPinIcon.className =
+        "material-icons-outlined md-18 gray";
+    }
+  }
+
+  setBackgroundColor(color) {
+    this.backgroundColor = color !== undefined ? color : "#ffffff";
+    this.elements.modalContainer.getElementsByClassName.backgroundColor =
+      this.backgroundColor;
+  }
+}
+
