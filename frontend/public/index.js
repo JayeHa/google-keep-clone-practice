@@ -268,22 +268,90 @@ class Note {
     onChangeBackgroundColor,
     onDelete,
   }) {
-    this.elements;
+    this.elements = this._createNoteElements({
+      id,
+      title,
+      body,
+      pinned,
+      backgroundColor,
+    });
+
+    const that = this;
+
+    this.id = id;
+    this.setTitle(title);
+    this.setBody(body);
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.setPin(pinned);
+    this.setBackgroundColor(backgroundColor);
+
+    this.elements.noteContainer.addEventListener("click", function (event) {
+      onClickNote(event, that);
+    });
+
+    this.elements.pinButton.addEventListener("click", function (event) {
+      event.stopPropagation();
+      onClickPin(event, that);
+    });
+
+    this.elements.colorSelectButton.addEventListener(
+      "change",
+      function (event) {
+        event.stopPropagation();
+        const color = event.target.value;
+        onChangeBackgroundColor(event, color, that);
+      }
+    );
+
+    this.elements.deleteButton.addEventListener("click", function (event) {
+      event.stopPropagation();
+      onClickDelete(event, that);
+    });
+  }
+
+  setTitle(title) {
+    this.title = title !== undefined ? title : "";
+    this.elements.noteTitle.textContent = this.title;
+  }
+
+  setBody(body) {
+    const formattedBody = body.replace(/(?:\r\n|\r|\n)/g, "<br>");
+    this.body = body !== undefined ? body : "";
+    this.elements.noteBody.innerHTML = formattedBody;
+  }
+
+  setCreatedAt(createdAt) {
+    this.createdAt =
+      createdAt !== undefined ? createdAt : Math.floor(Date.now() / 1000);
+  }
+
+  setUpdatedAt(updatedAt) {
+    this.updatedAt =
+      updatedAt !== undefined ? updatedAt : Math.floor(Date.now() / 1000);
+  }
+
+  setPin(pinned) {
+    this.pinned = pinned !== undefined ? pinned : false;
+    if (this.pinned) {
+      this.elements.pinButtonIcon.className = "material-icons md-18 gray";
+    } else {
+      this.elements.pinButtonIcon.className =
+        "material-icons-outlined md-18 gray";
+    }
+  }
+
+  setBackgroundColor(color) {
+    this.backgroundColor = color !== undefined ? color : "#FFFFFF";
+    this.elements.noteContainer.style.backgroundColor = this.backgroundColor;
   }
 
   // 노트 컴포넌트 UI 생성
-  _createNoteElements(
-    id,
-    title,
-    body,
-    createAt,
-    updatedAt,
-    pinned,
-    backgroundColor
-  ) {
+  _createNoteElements({ id, title, body, pinned, backgroundColor }) {
     const noteContainer = document.createElement("div");
     noteContainer.className = "note";
     noteContainer.id = id;
+    noteContainer.style.backgroundColor = backgroundColor;
 
     const noteTitle = document.createElement("div");
     noteTitle.className = "note-title";
@@ -301,6 +369,55 @@ class Note {
     noteFooter.className = "note-footer flex-start";
 
     const pinButton = document.createElement("button");
+    pinButton.className = "pin";
+
+    const pinButtonIcon = document.createElement("span");
+    pinButtonIcon.className = pinned
+      ? "material-icons md-18 gray"
+      : "material-icons-outlined md-18 gray";
+    pinButtonIcon.textContent = "push_pin";
+
+    const colorSelectButton = document.createElement("div");
+    colorSelectButton.className = "color-select";
+    colorSelectButton.addEventListener("click", function (event) {
+      event.stopPropagation();
+      this.firstElementChild.click();
+    });
+
+    const colorSelectInput = document.createElement("input");
+    colorSelectInput.className = "color-picker";
+    colorSelectInput.type = "color";
+
+    const colorSelectButtonIcon = document.createElement("span");
+    colorSelectButtonIcon.className = "material-icons-outlined md-18 gray";
+    colorSelectButtonIcon.textContent = "palette";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "delete";
+
+    const deleteButtonIcon = document.createElement("span");
+    deleteButtonIcon.className = "material-icons-outlined md-18 gray";
+    deleteButtonIcon.textContent = "delete";
+
+    deleteButton.append(deleteButtonIcon);
+    colorSelectButton.append(colorSelectInput, colorSelectButtonIcon);
+    pinButton.append(pinButtonIcon);
+
+    noteFooter.append(pinButton, colorSelectButton, deleteButton);
+
+    noteContainer.append(noteTitle, noteBody, noteFooter);
+
+    return {
+      noteContainer,
+      noteTitle,
+      noteBody,
+      pinButton,
+      pinButtonIcon,
+      colorSelectButton,
+      colorSelectButtonIcon,
+      deleteButton,
+      deleteButtonIcon,
+    };
   }
 }
 
