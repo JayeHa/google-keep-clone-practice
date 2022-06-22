@@ -115,6 +115,9 @@ class Modal {
       modalFooterColorSelectButton: document.querySelector(
         "#modalWrapper > div.modal-container > div.note-footer > div > div.color-select"
       ),
+      modalFooterColorSelectInput: document.querySelector(
+        "#modalWrapper > div.modal-container > div.note-footer > div > div.color-select > input"
+      ),
       modalFooterColorSelectIcon: document.querySelector(
         "#modalWrapper > div.modal-container > div.note-footer > div > div.color-select > span"
       ),
@@ -145,6 +148,42 @@ class Modal {
     this.elements.modalFooterPinButton.addEventListener("click", function () {
       that.setPin(!that.pinned);
     });
+
+    this.elements.modalFooterPinButton.addEventListener(
+      "click",
+      function (event) {
+        event.stopPropagation();
+        this.firstElementChild.click();
+      }
+    );
+
+    this.elements.modalFooterColorSelectInput.addEventListener(
+      "input",
+      function (event) {
+        const color = event.target.value;
+        that.setBackgroundColor(color);
+      }
+    );
+
+    this.elements.modalFooterDeleteButton.addEventListener(
+      "click",
+      async function () {
+        await noteService.deleteNote(that.id);
+        that.close();
+      }
+    );
+
+    that.elements.modalFooterCloseButton.addEventListener("click", function () {
+      that.close();
+    });
+
+    this.setNoteId();
+    this.setTitle();
+    this.setBody();
+    this.setPin();
+    this.setBackgroundColor();
+
+    this.closeHandler = () => {};
   }
 
   open() {
@@ -160,6 +199,14 @@ class Modal {
   }
 
   close() {
+    const obj = {
+      id: this.id,
+      title: this.title,
+      body: this.body,
+      pinned: this.pinned,
+      backgroundColor: this.backgroundColor,
+    };
+
     this.elements.modalWrapper.className = "hide";
     this.elements.modalLayout.className = "hide";
 
@@ -169,7 +216,7 @@ class Modal {
     this.setPin();
     this.setBackgroundColor();
 
-    this.closeHandler();
+    this.closeHandler(obj);
   }
 
   onClose(fn) {
@@ -204,6 +251,56 @@ class Modal {
     this.backgroundColor = color !== undefined ? color : "#ffffff";
     this.elements.modalContainer.getElementsByClassName.backgroundColor =
       this.backgroundColor;
+  }
+}
+
+class Note {
+  constructor({
+    id,
+    title,
+    body,
+    createAt,
+    updatedAt,
+    pinned,
+    backgroundColor,
+    onClickNote,
+    onClickPin,
+    onChangeBackgroundColor,
+    onDelete,
+  }) {
+    this.elements;
+  }
+
+  // 노트 컴포넌트 UI 생성
+  _createNoteElements(
+    id,
+    title,
+    body,
+    createAt,
+    updatedAt,
+    pinned,
+    backgroundColor
+  ) {
+    const noteContainer = document.createElement("div");
+    noteContainer.className = "note";
+    noteContainer.id = id;
+
+    const noteTitle = document.createElement("div");
+    noteTitle.className = "note-title";
+    if (title !== undefined && title !== null) {
+      noteTitle.textContent = title;
+    }
+
+    const noteBody = document.createElement("div");
+    noteBody.className = "note-body";
+    if (body !== undefined && body !== null) {
+      noteBody.textContent = body.replace(/(?:\r\n|\r|\n)/g, "<br />");
+    }
+
+    const noteFooter = document.createElement("div");
+    noteFooter.className = "note-footer flex-start";
+
+    const pinButton = document.createElement("button");
   }
 }
 
