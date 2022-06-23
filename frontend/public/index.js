@@ -421,3 +421,114 @@ class Note {
   }
 }
 
+class NoteList {
+  constructor({ modal }) {
+    this.elements = {
+      pinnedNoteContainer: document.querySelector(
+        "#pinnedNoteList > div.note-container"
+      ),
+      noteContainer: document.querySelector("#noteList > div.note-container"),
+    };
+    this.modalObj = modal;
+    this.pinnedNoteList = [];
+    this.noteList = [];
+    this.listChangeHandler = () => {};
+  }
+
+  show() {
+    this.elements.noteContainer.parentElement.className = "notes-section";
+    this.elements.pinnedNoteContainer.parentElement.className = "notes-section";
+  }
+
+  hide() {
+    this.elements.noteContainer.parentElement.className = "notes-section hide";
+    this.elements.pinnedNoteContainer.parentElement.className =
+      "notes-section hide";
+  }
+
+  getPinnedNoteList() {
+    return this.pinnedNoteList;
+  }
+
+  getNoteList() {
+    return this.noteList;
+  }
+
+  setAllNotelist(noteDataList) {
+    const that = this;
+    for (const noteData of noteDataList) {
+      const noteObj = new Note({
+        id: noteData.id,
+        title: noteData.title,
+        body: noteData.body,
+        createAt: noteData.createdAt,
+        updatedAt: noteData.updatedAt,
+        pinned: noteData.pinned,
+        backgroundColor: noteData.backgroundColor,
+        onClickNote: function (event, aNoteObj) {
+          that.modalObj.setNoteId(aNoteObj.id);
+          that.modalObj.setTitle(aNoteObj.title);
+          that.modalObj.setBody(aNoteObj.body);
+          that.modalObj.setPin(aNoteObj.pinned);
+          that.modalObj.setBackgroundColor(aNoteObj.backgroundColor);
+          that.modalObj.open();
+        },
+        onClickPin: async function (event, aNoteObj) {
+          await noteService.updateNote(aNoteObj.id, {
+            pinned: !aNoteObj.pinned,
+          });
+          aNoteObj.setPin(!aNoteObj.pinned);
+          that.removeNote(aNoteObj.id);
+          that.addNote(aNoteObj);
+          console.info(
+            `note ${aNoteObj.id} has been ${
+              aNoteObj.pinned ? "pinned" : "unpinned"
+            }`
+          );
+        },
+        onChangeBackgroundColor: async function (event, color, aNoteObj) {
+          await noteService.updateNote(aNoteObj.id, {
+            backgroundColor: color,
+          });
+          aNoteObj.setBackgroundColor(color);
+          console.info(`color change into ${color}`);
+        },
+        onClickDelete: async function (event, aNoteObj) {
+          await noteService.deleteNote(aNoteObj.id);
+          that.removeNote(aNoteObj.id);
+        },
+      });
+      this.addNote(noteObj);
+    }
+    this.listChangeHandler(this.pinnedNoteList, this.noteList);
+  }
+
+  addNote(noteObj) {
+    if (noteObj.pinned) {
+      this.pinnedNoteList.push(noteObj);
+      this.elements.pinnedNoteContainer.prepend(noteObj.elements.noteContainer);
+    } else {
+      this.noteList.push(noteObj);
+      this.elements.noteContainer.prepend(noteObj.elements.noteContainer);
+    }
+  }
+
+  removeNote(id) {
+    const note = this.noteList.find((note) => Node.id === id);
+    if (note !== undefined) {
+      note.elements.noteContainer.remove();
+      this.noteList = this.noteList.filter((note) => note.id !== id);
+    } else {
+      const pinnedNote = this.pinnedNoteList.find((note) => note.id === id);
+      pinnedNote.elements.noteContainer.remove();
+      this.pinnedNoteList = this.pinnedNoteList.filter(
+        (note) => note.id !== id
+      );
+    }
+  }
+
+  onListChange(fn) {
+    this.listChangeHandler = fn;
+  }
+}
+
