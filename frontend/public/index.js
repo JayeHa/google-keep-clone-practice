@@ -104,7 +104,7 @@ class Modal {
         "#modalWrapper > div > div.note-content > input.note-title-input"
       ),
       modalBodyInput: document.querySelector(
-        "#modalWrapper > div > div.note-content > input.note-body-input"
+        "#modalWrapper > div > div.note-content > .note-body-input"
       ),
       modalFooterPinButton: document.querySelector(
         "#modalWrapper > div.modal-container > div.note-footer > div > button.pin"
@@ -149,7 +149,7 @@ class Modal {
       that.setPin(!that.pinned);
     });
 
-    this.elements.modalFooterPinButton.addEventListener(
+    this.elements.modalFooterColorSelectButton.addEventListener(
       "click",
       function (event) {
         event.stopPropagation();
@@ -167,13 +167,13 @@ class Modal {
 
     this.elements.modalFooterDeleteButton.addEventListener(
       "click",
-      async function () {
-        await noteService.deleteNote(that.id);
+      function () {
+        that.deleted = true;
         that.close();
       }
     );
 
-    that.elements.modalFooterCloseButton.addEventListener("click", function () {
+    this.elements.modalFooterCloseButton.addEventListener("click", function () {
       that.close();
     });
 
@@ -191,7 +191,7 @@ class Modal {
     this.elements.modalLayout.className = "";
     this.elements.modalTitleInput.focus();
 
-    if (this.id === null || this.id === undefined) {
+    if (!this.id) {
       this.elements.modalFooterDeleteButton.style.display = "none";
     } else {
       this.elements.modalFooterDeleteButton.style.display = "block";
@@ -205,6 +205,7 @@ class Modal {
       body: this.body,
       pinned: this.pinned,
       backgroundColor: this.backgroundColor,
+      deleted: this.deleted,
     };
 
     this.elements.modalWrapper.className = "hide";
@@ -216,7 +217,9 @@ class Modal {
     this.setPin();
     this.setBackgroundColor();
 
-    this.closeHandler(obj);
+    this.deleted = false;
+
+    return this.closeHandler(obj);
   }
 
   onClose(fn) {
@@ -249,8 +252,7 @@ class Modal {
 
   setBackgroundColor(color) {
     this.backgroundColor = color !== undefined ? color : "#ffffff";
-    this.elements.modalContainer.getElementsByClassName.backgroundColor =
-      this.backgroundColor;
+    this.elements.modalContainer.style.backgroundColor = this.backgroundColor;
   }
 }
 
@@ -259,14 +261,14 @@ class Note {
     id,
     title,
     body,
-    createAt,
+    createdAt,
     updatedAt,
     pinned,
     backgroundColor,
     onClickNote,
     onClickPin,
     onChangeBackgroundColor,
-    onDelete,
+    onClickDelete,
   }) {
     this.elements = this._createNoteElements({
       id,
@@ -281,8 +283,8 @@ class Note {
     this.id = id;
     this.setTitle(title);
     this.setBody(body);
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
+    this.setCreatedAt(createdAt);
+    this.setUpdatedAt(updatedAt);
     this.setPin(pinned);
     this.setBackgroundColor(backgroundColor);
 
@@ -362,7 +364,7 @@ class Note {
     const noteBody = document.createElement("div");
     noteBody.className = "note-body";
     if (body !== undefined && body !== null) {
-      noteBody.textContent = body.replace(/(?:\r\n|\r|\n)/g, "<br />");
+      noteBody.innerHTML = body.replace(/(?:\r\n|\r|\n)/g, "<br />");
     }
 
     const noteFooter = document.createElement("div");
@@ -454,14 +456,14 @@ class NoteList {
     return this.noteList;
   }
 
-  setAllNotelist(noteDataList) {
+  setAllNoteList(noteDataList) {
     const that = this;
     for (const noteData of noteDataList) {
       const noteObj = new Note({
         id: noteData.id,
         title: noteData.title,
         body: noteData.body,
-        createAt: noteData.createdAt,
+        createdAt: noteData.createdAt,
         updatedAt: noteData.updatedAt,
         pinned: noteData.pinned,
         backgroundColor: noteData.backgroundColor,
@@ -514,7 +516,7 @@ class NoteList {
   }
 
   removeNote(id) {
-    const note = this.noteList.find((note) => Node.id === id);
+    const note = this.noteList.find((note) => note.id === id);
     if (note !== undefined) {
       note.elements.noteContainer.remove();
       this.noteList = this.noteList.filter((note) => note.id !== id);
@@ -531,4 +533,131 @@ class NoteList {
     this.listChangeHandler = fn;
   }
 }
+
+async function init() {
+  const noteDataList = await noteService.getNotes();
+
+  const modalObj = new Modal();
+  const addNoteBarObj = new AddNoteBar({
+    onClick: function (event) {
+      modalObj.open();
+    },
+  });
+
+  const noteListObj = new NoteList({ modal: modalObj });
+  const emptyNotePlaceholderObj = new EmptyNotePlaceholder();
+
+  // 노트가 추가되거나 삭제될 때마다 실행되는 콜백 함수
+  noteListObj.onListChange((pinnedNoteList, noteList) => {
+    if (pinnedNoteList.length === 0 && noteList.length === 0) {
+      emptyNotePlaceholderObj.show();
+      noteListObj.hide();
+    } else {
+      emptyNotePlaceholderObj.hide();
+      noteListObj.show();
+    }
+  });
+
+  noteListObj.setAllNoteList(noteDataList);
+
+  // 모달이 닫힐 때마다 실행되는 콜백 함수
+  modalObj.onClose(async (note) => {
+    if (note.deleted) {
+      await noteService.deleteNote(note.id);
+      noteListObj.removeNote(note.id);
+      return;
+    }
+
+    const allNoteList = noteListObj
+      .getPinnedNoteList()
+      .concat(noteListObj.getNoteList());
+
+    if (note.id) {
+      const currentNote = allNoteList.find((aNote) => aNote.id === note.id);
+      if (currentNote) {
+        const updatedNote = await noteService.updateNote(note.id, {
+          title: note.title,
+          body: note.body,
+          pinned: note.pinned,
+          backgroundColor: note.backgroundColor,
+        });
+
+        if (currentNote.pinned === note.pinned) {
+          currentNote.setTitle(note.title);
+          currentNote.setBody(note.body);
+          currentNote.setPin(note.pinned);
+          currentNote.setBackgroundColor(note.backgroundColor);
+        } else {
+          // 새롭게 핀 되거나 핀이 해제된 경우 삭제하고 다시 추가
+          noteListObj.removeNote(note.id);
+          noteListObj.addNote(
+            new Note({
+              id: updatedNote.id,
+              title: updatedNote.title,
+              body: updatedNote.body,
+              pinned: updatedNote.pinned,
+              backgroundColor: updatedNote.backgroundColor,
+              createdAt: updatedNote.createdAt,
+              updatedAt: updatedNote.updatedAt,
+            })
+          );
+        }
+      }
+    } else {
+      const result = await noteService.createNote({
+        title: note.title,
+        body: note.body,
+        pinned: note.pinned,
+        backgroundColor: note.backgroundColor,
+      });
+
+      const { id, createdAt, updatedAt } = result;
+
+      const newNote = new Note({
+        id,
+        title: note.title,
+        body: note.body,
+        createdAt,
+        updatedAt,
+        pinned: note.pinned,
+        backgroundColor: note.backgroundColor,
+        onClickNote: function (event, aNoteObj) {
+          modalObj.setNoteId(aNoteObj.id);
+          modalObj.setTitle(aNoteObj.title);
+          modalObj.setBody(aNoteObj.body);
+          modalObj.setPin(aNoteObj.pinned);
+          modalObj.setBackgroundColor(aNoteObj.backgroundColor);
+          modalObj.open();
+        },
+        onClickPin: async function (event, aNoteObj) {
+          await noteService.updateNote(aNoteObj.id, {
+            pinned: !aNoteObj.pinned,
+          });
+          aNoteObj.setPin(!aNoteObj.pinned);
+          noteListObj.removeNote(aNoteObj.id);
+          noteListObj.addNote(aNoteObj);
+          console.info(
+            `note ${aNoteObj.id} has been ${
+              aNoteObj.pinned ? "pinned" : "unpinned"
+            }`
+          );
+        },
+        onChangeBackgroundColor: async function (event, color, aNoteObj) {
+          await noteService.updateNote(aNoteObj.id, {
+            backgroundColor: color,
+          });
+          aNoteObj.setBackgroundColor(color);
+          console.info(`color change into ${color}`);
+        },
+        onClickDelete: async function (event, aNoteObj) {
+          await noteService.deleteNote(aNoteObj.id);
+          noteListObj.removeNote(aNoteObj.id);
+        },
+      });
+      noteListObj.addNote(newNote);
+    }
+  });
+}
+
+init();
 
